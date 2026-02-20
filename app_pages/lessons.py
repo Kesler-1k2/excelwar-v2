@@ -286,9 +286,23 @@ def render() -> None:
                     st.code("\n".join(formulas), language="text")
 
             lab_namespace = lesson_name.lower().replace(" ", "_")
+            lesson_examples: list[str] = []
+            for step in lesson["steps"]:
+                formulas = step.get("formulas", [])
+                if formulas:
+                    lesson_examples.extend(str(formula) for formula in formulas)
+
+            deduped_examples: list[str] = []
+            seen_examples: set[str] = set()
+            for formula in lesson_examples:
+                if formula not in seen_examples:
+                    seen_examples.add(formula)
+                    deduped_examples.append(formula)
+
             render_lab(
                 namespace=f"{lab_namespace}_lab",
                 show_title=False,
+                show_new_sheet_button=False,
                 lesson_context={
                     "name": lesson_name,
                     "title": lesson["title"],
@@ -296,6 +310,7 @@ def render() -> None:
                     "objectives": lesson["objectives"],
                     "topics": lesson["topics"],
                     "lab_prompt": lesson["lab_prompt"],
+                    "examples": deduped_examples[:8],
                 },
             )
 

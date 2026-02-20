@@ -534,6 +534,7 @@ def render_lab(
     namespace: str = "spreadsheet",
     show_title: bool = True,
     lesson_context: dict[str, Any] | None = None,
+    show_new_sheet_button: bool = True,
 ) -> None:
     if show_title:
         st.title("🧮 Spreadsheet Lab")
@@ -549,7 +550,11 @@ def render_lab(
     left_col, right_col = st.columns([2.2, 1], gap="large")
 
     with left_col:
-        controls_col, new_sheet_col, help_col = st.columns([2, 1, 1], gap="large")
+        if show_new_sheet_button:
+            controls_col, new_sheet_col, help_col = st.columns([2, 1, 1], gap="large")
+        else:
+            controls_col, help_col = st.columns([3, 1], gap="large")
+            new_sheet_col = None
 
         with controls_col:
             uploaded_file = st.file_uploader(
@@ -568,17 +573,25 @@ def render_lab(
                 except Exception as error:  # noqa: BLE001
                     st.error(f"Could not import file: {error}")
 
-        with new_sheet_col:
-            if st.button("New Blank Sheet", use_container_width=True, key=keys["new_sheet_button"]):
-                st.session_state[keys["sheet"]] = _build_blank_sheet(DEFAULT_ROWS, DEFAULT_COLS)
-                st.session_state[keys["changes"]] = []
-                st.session_state[keys["version"]] += 1
-                st.rerun()
+        if new_sheet_col is not None:
+            with new_sheet_col:
+                if st.button("New Blank Sheet", use_container_width=True, key=keys["new_sheet_button"]):
+                    st.session_state[keys["sheet"]] = _build_blank_sheet(DEFAULT_ROWS, DEFAULT_COLS)
+                    st.session_state[keys["changes"]] = []
+                    st.session_state[keys["version"]] += 1
+                    st.rerun()
 
         with help_col:
             st.caption("Examples: `=SUM(A1:A5)`, `=A1+B1`, `=IF(A1>50,\"Pass\",\"Fail\")`")
 
         raw_df = st.session_state[keys["sheet"]]
+
+        lesson_examples = []
+        if lesson_context and isinstance(lesson_context.get("examples"), list):
+            lesson_examples = [str(item).strip() for item in lesson_context["examples"] if str(item).strip()]
+        if lesson_examples:
+            st.caption("Lesson formula examples:")
+            st.code("\n".join(lesson_examples), language="text")
 
         with st.expander("Sheet Size", expanded=False):
             current_rows = len(raw_df)
