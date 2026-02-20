@@ -49,6 +49,12 @@ LESSONS = {
             {
                 "task": "Add `SUM`, `AVERAGE`, `MIN`, and `MAX` formulas in summary cells.",
                 "explain": "These are foundational functions you will reuse in every later lesson.",
+                "formulas": [
+                    "=SUM(B2:B7)",
+                    "=AVERAGE(B2:B7)",
+                    "=MIN(B2:B7)",
+                    "=MAX(B2:B7)",
+                ],
             },
             {
                 "task": "Edit one amount value and observe formula updates.",
@@ -111,6 +117,12 @@ LESSONS = {
             {
                 "task": "Sort by `Revenue` and identify top-performing rows.",
                 "explain": "Sorting turns raw records into ranked insights.",
+                "formulas": [
+                    "=SUM(C2:C10)",
+                    "=SUM(D2:D10)",
+                    "=AVERAGE(D2:D10)",
+                    "=MAX(D2:D10)",
+                ],
             },
             {
                 "task": "Ask Gemini how to improve your table clarity and what changed after edits.",
@@ -161,6 +173,12 @@ LESSONS = {
             {
                 "task": "Add summary formulas (total, average, and other useful metrics).",
                 "explain": "You convert raw values into interpretable performance indicators.",
+                "formulas": [
+                    "=SUM(B2:B9)",
+                    "=AVERAGE(B2:B9)",
+                    "=MIN(B2:B9)",
+                    "=MAX(B2:B9)",
+                ],
             },
             {
                 "task": "Write 2-3 insight bullets based on your calculations.",
@@ -169,6 +187,10 @@ LESSONS = {
             {
                 "task": "Change one monthly value and observe how metrics shift.",
                 "explain": "You see how source edits propagate through analytical outputs.",
+                "formulas": [
+                    "=B9-B8",
+                    "=ROUND((B9-B8)/B8*100,2)",
+                ],
             },
             {
                 "task": "Ask Gemini to guide next improvements and explain chart choice.",
@@ -259,6 +281,9 @@ def render() -> None:
             for index, step in enumerate(lesson["steps"], start=1):
                 st.markdown(f"**Step {index}:** {step['task']}")
                 st.caption(f"What this does: {step['explain']}")
+                formulas = step.get("formulas", [])
+                if formulas:
+                    st.code("\n".join(formulas), language="text")
 
             lab_namespace = lesson_name.lower().replace(" ", "_")
             render_lab(
