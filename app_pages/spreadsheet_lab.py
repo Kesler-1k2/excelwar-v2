@@ -1,17 +1,25 @@
 from __future__ import annotations
 
+import os
 import re
 from io import BytesIO
 from pathlib import Path
 from typing import Any
 
+import google.generativeai as genai
 import numpy as np
 import pandas as pd
 import streamlit as st
+from dotenv import load_dotenv
 
 DEFAULT_ROWS = 12
 DEFAULT_COLS = 8
 SHEET_STATE_KEY = "spreadsheet_raw_data"
+SHEET_CHANGE_LOG_KEY = "spreadsheet_change_log"
+SHEET_VERSION_KEY = "spreadsheet_version"
+SHEET_CHAT_MESSAGES_KEY = "spreadsheet_chat_messages"
+SHEET_CHAT_CACHE_KEY = "spreadsheet_chat_cache"
+MODEL_NAME = "gemini-2.5-flash"
 
 RANGE_PATTERN = re.compile(r"\b([A-Z]+)([1-9]\d*):([A-Z]+)([1-9]\d*)\b")
 CELL_PATTERN = re.compile(r"\b([A-Z]+)([1-9]\d*)\b")
@@ -63,6 +71,16 @@ def _normalize_sheet(dataframe: pd.DataFrame) -> pd.DataFrame:
     return normalized.reset_index(drop=True)
 
 
+def _init_gemini() -> str | None:
+    load_dotenv(dotenv_path=".env")
+    api_key = os.getenv("GOOGLE_API_KEY")
+
+    if api_key:
+        genai.configure(api_key=api_key)
+
+    return api_key
+
+
 def _resize_sheet(dataframe: pd.DataFrame, rows: int, cols: int) -> pd.DataFrame:
     resized = _build_blank_sheet(rows, cols)
 
@@ -74,6 +92,34 @@ def _resize_sheet(dataframe: pd.DataFrame, rows: int, cols: int) -> pd.DataFrame
             resized.iat[row_index, col_index] = _normalize_cell(dataframe.iat[row_index, col_index])
 
     return resized
+
+
+def _diff_sheets(before: pd.DataFrame, after: pd.DataFrame) -> list[dict[str, str]]:
+    changes: list[dict[str, str]] = []
+    max_rows = max(len(before), len(after))
+    max_cols = max(len(before.columns), len(after.columns))
+
+    for row_index in range(max_rows):
+        for col_index in range(max_cols):
+            before_value = ""
+            after_value = ""
+
+            if row_index < len(before) and col_index < len(before.columns):
+                before_value = _normalize_cell(before.iat[row_index, col_index])
+
+            if row_index < len(after) and col_index < len(after.columns):
+                after_value = _normalize_cell(after.iat[row_index, col_index])
+
+            if before_value != after_value:
+                changes.append(
+                    {
+                        "cell": f"{_column_name(col_index)}{row_index + 1}",
+                        "old": before_value,
+                        "new": after_value,
+                    }
+                )
+
+    return changes
 
 
 def _read_uploaded_sheet(uploaded_file) -> pd.DataFrame:
@@ -354,6 +400,54 @@ def _calculate_preview(raw_df: pd.DataFrame) -> pd.DataFrame:
 def _init_sheet_state() -> None:
     if SHEET_STATE_KEY not in st.session_state:
         st.session_state[SHEET_STATE_KEY] = _build_blank_sheet(DEFAULT_ROWS, DEFAULT_COLS)
+    if SHEET_CHANGE_LOG_KEY not in st.session_state:
+        st.session_state[SHEET_CHANGE_LOG_KEY] = []
+    if SHEET_VERSION_KEY not in st.session_state:
+        st.session_state[SHEET_VERSION_KEY] = 0
+    if SHEET_CHAT_MESSAGES_KEY not in st.session_state:
+        st.session_state[SHEET_CHAT_MESSAGES_KEY] = []
+    if SHEET_CHAT_CACHE_KEY not in st.session_state:
+        st.session_state[SHEET_CHAT_CACHE_KEY] = {}
+
+
+def _build_change_context(limit: int = 20) -> str:
+    changes = st.session_state.get(SHEET_CHANGE_LOG_KEY, [])
+
+    if not changes:
+        return "No spreadsheet changes have been tracked yet."
+
+    recent = changes[-limit:]
+    lines = [f"{item['cell']}: '{item['old']}' -> '{item['new']}'" for item in recent]
+    return "Recent spreadsheet changes:\n" + "\n".join(lines)
+
+
+def _ask_gemini(user_input: str, api_key: str | None) -> str:
+    if not api_key:
+        return "GOOGLE_API_KEY is missing. Add it to `.env` to enable Gemini responses."
+
+    sheet_version = st.session_state.get(SHEET_VERSION_KEY, 0)
+    cache_key = f"{sheet_version}:{user_input.strip()}"
+    cache = st.session_state[SHEET_CHAT_CACHE_KEY]
+
+    if cache_key in cache:
+        return cache[cache_key]
+
+    prompt = (
+        "You are helping with a live spreadsheet.\n"
+        f"{_build_change_context()}\n\n"
+        "When asked what changed, answer with exact cell references and old/new values.\n"
+        f"User question: {user_input}"
+    )
+
+    try:
+        model = genai.GenerativeModel(MODEL_NAME)
+        response = model.generate_content(prompt)
+        reply = response.text or "I could not generate a response."
+    except Exception as error:  # noqa: BLE001
+        reply = f"API error: {error}"
+
+    cache[cache_key] = reply
+    return reply
 
 
 def render() -> None:
@@ -361,87 +455,132 @@ def render() -> None:
     st.write("Single-grid spreadsheet editor with Excel-style formulas.")
 
     _init_sheet_state()
+    api_key = _init_gemini()
 
-    controls_col, new_sheet_col, help_col = st.columns([2, 1, 1], gap="large")
+    left_col, right_col = st.columns([2.2, 1], gap="large")
 
-    with controls_col:
-        uploaded_file = st.file_uploader("Import CSV/XLSX", type=["csv", "xlsx", "xls"])
-        if uploaded_file is not None and st.button("Import File", key="sheet_import"):
-            try:
-                st.session_state[SHEET_STATE_KEY] = _read_uploaded_sheet(uploaded_file)
-                st.success("Sheet imported.")
+    with left_col:
+        controls_col, new_sheet_col, help_col = st.columns([2, 1, 1], gap="large")
+
+        with controls_col:
+            uploaded_file = st.file_uploader("Import CSV/XLSX", type=["csv", "xlsx", "xls"])
+            if uploaded_file is not None and st.button("Import File", key="sheet_import"):
+                try:
+                    imported = _read_uploaded_sheet(uploaded_file)
+                    st.session_state[SHEET_STATE_KEY] = imported
+                    st.session_state[SHEET_CHANGE_LOG_KEY] = []
+                    st.session_state[SHEET_VERSION_KEY] += 1
+                    st.success("Sheet imported.")
+                    st.rerun()
+                except Exception as error:  # noqa: BLE001
+                    st.error(f"Could not import file: {error}")
+
+        with new_sheet_col:
+            if st.button("New Blank Sheet", use_container_width=True):
+                st.session_state[SHEET_STATE_KEY] = _build_blank_sheet(DEFAULT_ROWS, DEFAULT_COLS)
+                st.session_state[SHEET_CHANGE_LOG_KEY] = []
+                st.session_state[SHEET_VERSION_KEY] += 1
                 st.rerun()
-            except Exception as error:  # noqa: BLE001
-                st.error(f"Could not import file: {error}")
 
-    with new_sheet_col:
-        if st.button("New Blank Sheet", use_container_width=True):
-            st.session_state[SHEET_STATE_KEY] = _build_blank_sheet(DEFAULT_ROWS, DEFAULT_COLS)
-            st.rerun()
+        with help_col:
+            st.caption("Examples: `=SUM(A1:A5)`, `=A1+B1`, `=IF(A1>50,\"Pass\",\"Fail\")`")
 
-    with help_col:
-        st.caption("Examples: `=SUM(A1:A5)`, `=A1+B1`, `=IF(A1>50,\"Pass\",\"Fail\")`")
+        raw_df = st.session_state[SHEET_STATE_KEY]
 
-    raw_df = st.session_state[SHEET_STATE_KEY]
+        with st.expander("Sheet Size"):
+            current_rows = len(raw_df)
+            current_cols = len(raw_df.columns)
 
-    with st.expander("Sheet Size"):
-        current_rows = len(raw_df)
-        current_cols = len(raw_df.columns)
+            resize_rows = st.number_input("Rows", min_value=1, max_value=300, value=current_rows)
+            resize_cols = st.number_input("Columns", min_value=1, max_value=52, value=current_cols)
 
-        resize_rows = st.number_input("Rows", min_value=1, max_value=300, value=current_rows)
-        resize_cols = st.number_input("Columns", min_value=1, max_value=52, value=current_cols)
+            if st.button("Apply Size", key="apply_sheet_size"):
+                resized = _resize_sheet(raw_df, int(resize_rows), int(resize_cols))
+                st.session_state[SHEET_STATE_KEY] = resized
+                st.session_state[SHEET_CHANGE_LOG_KEY] = []
+                st.session_state[SHEET_VERSION_KEY] += 1
+                st.rerun()
 
-        if st.button("Apply Size", key="apply_sheet_size"):
-            st.session_state[SHEET_STATE_KEY] = _resize_sheet(raw_df, int(resize_rows), int(resize_cols))
-            st.rerun()
-
-    mode = st.radio(
-        "Grid Mode",
-        ["Edit Values/Formulas", "Calculated Preview"],
-        horizontal=True,
-    )
-
-    raw_df = st.session_state[SHEET_STATE_KEY]
-
-    if mode == "Edit Values/Formulas":
-        edited_df = st.data_editor(
-            raw_df,
-            num_rows="dynamic",
-            use_container_width=True,
-            key="spreadsheet_editor",
-        )
-        st.session_state[SHEET_STATE_KEY] = _normalize_sheet(edited_df)
-        preview_df = _calculate_preview(st.session_state[SHEET_STATE_KEY])
-    else:
-        preview_df = _calculate_preview(raw_df)
-        st.data_editor(
-            preview_df,
-            disabled=True,
-            use_container_width=True,
-            key="spreadsheet_preview",
+        mode = st.radio(
+            "Grid Mode",
+            ["Edit Values/Formulas", "Calculated Preview"],
+            horizontal=True,
         )
 
-    export_mode = st.selectbox(
-        "Export Content",
-        ["Calculated values", "Raw values/formulas"],
-    )
+        raw_df = st.session_state[SHEET_STATE_KEY]
 
-    export_df = preview_df if export_mode == "Calculated values" else st.session_state[SHEET_STATE_KEY]
+        if mode == "Edit Values/Formulas":
+            before_df = raw_df.copy()
+            edited_df = st.data_editor(
+                raw_df,
+                num_rows="dynamic",
+                use_container_width=True,
+                key="spreadsheet_editor",
+            )
+            normalized_edited_df = _normalize_sheet(edited_df)
+            changes = _diff_sheets(before_df, normalized_edited_df)
+            st.session_state[SHEET_STATE_KEY] = normalized_edited_df
+            if changes:
+                st.session_state[SHEET_CHANGE_LOG_KEY] = changes
+                st.session_state[SHEET_VERSION_KEY] += 1
+            preview_df = _calculate_preview(st.session_state[SHEET_STATE_KEY])
+        else:
+            preview_df = _calculate_preview(raw_df)
+            st.data_editor(
+                preview_df,
+                disabled=True,
+                use_container_width=True,
+                key="spreadsheet_preview",
+            )
 
-    excel_buffer = BytesIO()
-    export_df.to_excel(excel_buffer, index=False, header=False)
+        export_mode = st.selectbox(
+            "Export Content",
+            ["Calculated values", "Raw values/formulas"],
+        )
 
-    st.download_button(
-        "Download XLSX",
-        data=excel_buffer.getvalue(),
-        file_name="excelwars_sheet.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-    )
+        export_df = preview_df if export_mode == "Calculated values" else st.session_state[SHEET_STATE_KEY]
 
-    csv_data = export_df.to_csv(index=False, header=False).encode("utf-8")
-    st.download_button(
-        "Download CSV",
-        data=csv_data,
-        file_name="excelwars_sheet.csv",
-        mime="text/csv",
-    )
+        excel_buffer = BytesIO()
+        export_df.to_excel(excel_buffer, index=False, header=False)
+
+        st.download_button(
+            "Download XLSX",
+            data=excel_buffer.getvalue(),
+            file_name="excelwars_sheet.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        )
+
+        csv_data = export_df.to_csv(index=False, header=False).encode("utf-8")
+        st.download_button(
+            "Download CSV",
+            data=csv_data,
+            file_name="excelwars_sheet.csv",
+            mime="text/csv",
+        )
+
+    with right_col:
+        st.subheader("🤖 Gemini Spreadsheet Chat")
+        st.caption("Ask things like: what changed? what changed in A3?")
+        st.caption(f"Tracked sheet version: {st.session_state[SHEET_VERSION_KEY]}")
+
+        for message in st.session_state[SHEET_CHAT_MESSAGES_KEY]:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
+
+        question = st.text_input("Ask Gemini about this sheet", key="sheet_chat_input")
+
+        send_col, clear_col = st.columns([1, 1])
+        with send_col:
+            send_clicked = st.button("Send", use_container_width=True, key="sheet_chat_send")
+        with clear_col:
+            if st.button("Clear Chat", use_container_width=True, key="sheet_chat_clear"):
+                st.session_state[SHEET_CHAT_MESSAGES_KEY] = []
+                st.rerun()
+
+        if send_clicked and question.strip():
+            user_input = question.strip()
+            st.session_state[SHEET_CHAT_MESSAGES_KEY].append({"role": "user", "content": user_input})
+            bot_reply = _ask_gemini(user_input, api_key)
+            st.session_state[SHEET_CHAT_MESSAGES_KEY].append({"role": "assistant", "content": bot_reply})
+            st.session_state.sheet_chat_input = ""
+            st.rerun()
