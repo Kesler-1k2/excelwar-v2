@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pandas as pd
 import streamlit as st
-from PIL import Image
+from PIL import Image, ImageDraw
 
 from app_core import (
     PROFILE_PIC_FILE,
@@ -14,36 +14,77 @@ from app_core import (
 )
 
 
-def _render_profile_editor() -> None:
+def _profile_picture_path() -> Path | None:
+    saved_picture = st.session_state.profile_data.get("profile_pic")
+    if not saved_picture:
+        return None
+
+    candidate = Path(saved_picture)
+    if candidate.exists():
+        return candidate
+
+    fallback = Path(PROFILE_PIC_FILE)
+    if fallback.exists():
+        return fallback
+
+    return None
+
+
+def _build_circular_avatar(image_path: Path, size: int = 220) -> Image.Image:
+    image = Image.open(image_path).convert("RGBA")
+    width, height = image.size
+    edge = min(width, height)
+    left = (width - edge) // 2
+    top = (height - edge) // 2
+    cropped = image.crop((left, top, left + edge, top + edge)).resize((size, size))
+
+    mask = Image.new("L", (size, size), 0)
+    draw = ImageDraw.Draw(mask)
+    draw.ellipse((0, 0, size - 1, size - 1), fill=255)
+
+    avatar = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    avatar.paste(cropped, (0, 0), mask)
+    return avatar
+
+
+def _render_profile_card() -> None:
     st.subheader("Student Profile")
 
-    profile_data = st.session_state.profile_data
-    current_name = st.session_state.get("student_name", "")
+    picture_path = _profile_picture_path()
+    if picture_path is not None:
+        st.image(_build_circular_avatar(picture_path), width=180)
+    else:
+        st.info("No profile picture yet.")
 
-    with st.form("profile_form"):
-        new_name = st.text_input("Name", value=current_name)
-        uploaded_picture = st.file_uploader("Profile Picture", type=["png", "jpg", "jpeg"])
-        save_clicked = st.form_submit_button("Save Profile")
+    st.markdown(f"### {st.session_state.get('student_name', 'Guest')}")
 
-    if save_clicked:
-        normalized_name = new_name.strip() or "Guest"
 
-        profile_data["name"] = normalized_name
-        st.session_state.student_name = normalized_name
+def _render_profile_editor_dropdown() -> None:
+    with st.expander("Edit Profile", expanded=False):
+        profile_data = st.session_state.profile_data
+        current_name = st.session_state.get("student_name", "")
 
-        if uploaded_picture is not None:
-            image = Image.open(uploaded_picture)
-            image.save(PROFILE_PIC_FILE)
-            profile_data["profile_pic"] = str(PROFILE_PIC_FILE)
+        with st.form("profile_form"):
+            new_name = st.text_input("Name", value=current_name)
+            uploaded_picture = st.file_uploader("Profile Picture", type=["png", "jpg", "jpeg"])
+            save_clicked = st.form_submit_button("Save Profile")
 
-        st.session_state.profile_data = profile_data
-        save_profile_data(profile_data)
-        log_activity("Profile updated")
-        st.success("Profile saved.")
+        if save_clicked:
+            normalized_name = new_name.strip() or "Guest"
 
-    saved_picture = profile_data.get("profile_pic")
-    if saved_picture and Path(saved_picture).exists():
-        st.image(saved_picture, width=160, caption="Current Profile Picture")
+            profile_data["name"] = normalized_name
+            st.session_state.student_name = normalized_name
+
+            if uploaded_picture is not None:
+                image = Image.open(uploaded_picture).convert("RGB")
+                image.save(PROFILE_PIC_FILE)
+                profile_data["profile_pic"] = str(PROFILE_PIC_FILE)
+
+            st.session_state.profile_data = profile_data
+            save_profile_data(profile_data)
+            log_activity("Profile updated")
+            st.success("Profile saved.")
+            st.rerun()
 
 
 def _render_progress_summary() -> None:
@@ -94,11 +135,12 @@ def render() -> None:
     left_col, right_col = st.columns([1, 1], gap="large")
 
     with left_col:
-        _render_profile_editor()
+        _render_profile_card()
 
     with right_col:
         _render_progress_summary()
 
+    _render_profile_editor_dropdown()
     _render_badges_and_log()
 
     if st.button("Go to Lessons", use_container_width=True):
