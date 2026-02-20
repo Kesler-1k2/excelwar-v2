@@ -635,6 +635,13 @@ def render_lab(
             if changes:
                 st.session_state[keys["changes"]] = changes
                 st.session_state[keys["version"]] += 1
+                formula_entered = any(
+                    item["new"].strip().startswith("=") and item["new"] != item["old"]
+                    for item in changes
+                )
+                if formula_entered:
+                    st.session_state[keys["mode_radio"]] = "Calculated Preview"
+                    st.rerun()
             preview_df = _calculate_preview(st.session_state[keys["sheet"]])
         else:
             preview_df = _calculate_preview(raw_df)
