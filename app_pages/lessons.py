@@ -37,6 +37,32 @@ LESSONS = {
             "What changed when you edited one Amount cell and recalculated?",
             "If a value is blank, how does your summary area respond?",
         ],
+        "steps": [
+            {
+                "task": "Create headers `Category` and `Amount` in row 1.",
+                "explain": "This gives your data a clear structure and makes formulas easier to read.",
+            },
+            {
+                "task": "Enter at least 6 expense rows under those headers.",
+                "explain": "A larger sample helps you practice meaningful totals and averages.",
+            },
+            {
+                "task": "Add `SUM`, `AVERAGE`, `MIN`, and `MAX` formulas in summary cells.",
+                "explain": "These are foundational functions you will reuse in every later lesson.",
+            },
+            {
+                "task": "Edit one amount value and observe formula updates.",
+                "explain": "You learn that formulas are dynamic and tied to cell references.",
+            },
+            {
+                "task": "Ask Gemini: `What changed?` and `Explain my formulas.`",
+                "explain": "Gemini confirms exact edits and reinforces the concept behind each formula.",
+            },
+            {
+                "task": "Submit the quiz and mark the lesson complete.",
+                "explain": "This checks understanding and records XP progress.",
+            },
+        ],
         "quiz": {
             "question": "Which function adds values together?",
             "options": ["SUM", "IF", "LEN"],
@@ -69,6 +95,32 @@ LESSONS = {
             "What is the risk of sorting only one column instead of the full table?",
             "How would you explain your filter logic to someone reviewing your file?",
         ],
+        "steps": [
+            {
+                "task": "Create columns: `Product`, `Region`, `Units`, `Revenue`.",
+                "explain": "This mirrors a realistic business dataset with mixed field types.",
+            },
+            {
+                "task": "Enter sample rows and format `Units` as whole numbers and `Revenue` as currency.",
+                "explain": "Correct formats improve accuracy and interpretation.",
+            },
+            {
+                "task": "Style headers clearly (bold/alignment/spacing).",
+                "explain": "Visual hierarchy makes your sheet easier to scan and review.",
+            },
+            {
+                "task": "Sort by `Revenue` and identify top-performing rows.",
+                "explain": "Sorting turns raw records into ranked insights.",
+            },
+            {
+                "task": "Ask Gemini how to improve your table clarity and what changed after edits.",
+                "explain": "You get coaching on formatting and organization while verifying sheet changes.",
+            },
+            {
+                "task": "Submit quiz and complete lesson.",
+                "explain": "You validate the skill and lock in progress.",
+            },
+        ],
         "quiz": {
             "question": "Filtering does what?",
             "options": ["Deletes data", "Shows selected data", "Changes numbers"],
@@ -100,6 +152,32 @@ LESSONS = {
             "Which metric best captures trend direction over time?",
             "What changed in your summary after editing one monthly value?",
             "Why is a line chart better here than a pie chart?",
+        ],
+        "steps": [
+            {
+                "task": "Create monthly data for at least 8 periods (`Month`, `Value`).",
+                "explain": "This builds a trend-ready dataset for analysis.",
+            },
+            {
+                "task": "Add summary formulas (total, average, and other useful metrics).",
+                "explain": "You convert raw values into interpretable performance indicators.",
+            },
+            {
+                "task": "Write 2-3 insight bullets based on your calculations.",
+                "explain": "This practices communicating results, not only computing them.",
+            },
+            {
+                "task": "Change one monthly value and observe how metrics shift.",
+                "explain": "You see how source edits propagate through analytical outputs.",
+            },
+            {
+                "task": "Ask Gemini to guide next improvements and explain chart choice.",
+                "explain": "You align spreadsheet work with lesson goals on trend storytelling.",
+            },
+            {
+                "task": "Submit quiz and mark lesson complete.",
+                "explain": "You verify mastery and update your lesson progress.",
+            },
         ],
         "quiz": {
             "question": "Which chart is best for trends?",
@@ -176,6 +254,11 @@ def render() -> None:
             st.subheader("Guided Lab Task")
             st.write(lesson["lab_prompt"])
             st.caption("Use the embedded lab below. Gemini on the right can explain edits and formula outcomes.")
+
+            st.subheader("Step-by-Step Instructions")
+            for index, step in enumerate(lesson["steps"], start=1):
+                st.markdown(f"**Step {index}:** {step['task']}")
+                st.caption(f"What this does: {step['explain']}")
 
             lab_namespace = lesson_name.lower().replace(" ", "_")
             render_lab(
