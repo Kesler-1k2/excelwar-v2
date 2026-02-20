@@ -6,7 +6,7 @@ from typing import Callable
 import streamlit as st
 
 from app_core import get_profile_name, init_app_state, navigate
-from app_pages import chatbot, home, lesson_plan, lessons, practice_lab, profile_progress, spreadsheet_lab
+from app_pages import chatbot, home, lessons, practice_lab, profile_progress, spreadsheet_lab
 
 
 @dataclass(frozen=True)
@@ -22,7 +22,6 @@ PRIMARY_PAGES = [
     PageConfig("lessons", "Lessons", "📚", lessons.render),
     PageConfig("spreadsheet", "Spreadsheet Lab", "🧮", spreadsheet_lab.render),
     PageConfig("practice", "Practice Lab", "🧪", practice_lab.render),
-    PageConfig("lesson_plan", "Lesson Plan", "🗂", lesson_plan.render),
     PageConfig("chatbot", "AI Tutor", "🤖", chatbot.render),
 ]
 

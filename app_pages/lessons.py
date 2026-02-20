@@ -8,12 +8,35 @@ from app_core import (
     mark_lesson_completed,
     mark_quiz_completed,
 )
+from app_pages.spreadsheet_lab import render_lab
 
 LESSONS = {
     "Lesson 1": {
         "title": "Basics of Excel",
-        "summary": "Understand rows, columns, cells, and basic navigation.",
-        "topics": ["Workbook structure", "Entering data", "Simple formatting"],
+        "summary": (
+            "Build fluency with the worksheet grid, clean data entry habits, and first formulas. "
+            "By the end, you can structure a small table and compute totals safely."
+        ),
+        "objectives": [
+            "Identify rows, columns, and cell addresses without guessing.",
+            "Enter consistent numeric/text data and avoid mixed formats.",
+            "Use core formulas with confidence: SUM, AVERAGE, MIN, and MAX.",
+        ],
+        "mini_plan": [
+            "Warm-up: map cell addresses and movement shortcuts.",
+            "Guided practice: build a simple weekly expense table.",
+            "Application: calculate totals, average spend, and highest/lowest values.",
+        ],
+        "topics": ["Workbook structure", "Entering data", "Simple formatting", "Core formulas"],
+        "lab_prompt": (
+            "Create columns for Category and Amount. Enter at least six expense rows, then use formulas "
+            "to compute total, average, minimum, and maximum in summary cells."
+        ),
+        "coach_questions": [
+            "Which value is your maximum spend, and in which category does it appear?",
+            "What changed when you edited one Amount cell and recalculated?",
+            "If a value is blank, how does your summary area respond?",
+        ],
         "quiz": {
             "question": "Which function adds values together?",
             "options": ["SUM", "IF", "LEN"],
@@ -22,8 +45,30 @@ LESSONS = {
     },
     "Lesson 2": {
         "title": "Cell Formatting and Organization",
-        "summary": "Present data clearly with formatting, sorting, and filtering.",
-        "topics": ["Number formats", "Cell styling", "Sorting and filtering"],
+        "summary": (
+            "Turn raw tables into readable, decision-ready sheets. Focus on formatting intent, "
+            "table organization, and trustworthy sorting/filtering habits."
+        ),
+        "objectives": [
+            "Apply number and date formats that match the data type.",
+            "Use visual hierarchy so headers and key fields are immediately clear.",
+            "Organize records with sorting/filtering while preserving data integrity.",
+        ],
+        "mini_plan": [
+            "Warm-up: compare poor vs strong spreadsheet formatting decisions.",
+            "Guided practice: standardize a mixed-format sales table.",
+            "Application: sort and filter to answer business questions quickly.",
+        ],
+        "topics": ["Number formats", "Cell styling", "Sorting and filtering", "Data hygiene"],
+        "lab_prompt": (
+            "Build a product sales table with Product, Region, Units, and Revenue. Format units as whole numbers "
+            "and revenue as currency. Sort by Revenue and identify the top performer."
+        ),
+        "coach_questions": [
+            "Which format choices improved readability the most?",
+            "What is the risk of sorting only one column instead of the full table?",
+            "How would you explain your filter logic to someone reviewing your file?",
+        ],
         "quiz": {
             "question": "Filtering does what?",
             "options": ["Deletes data", "Shows selected data", "Changes numbers"],
@@ -32,8 +77,30 @@ LESSONS = {
     },
     "Lesson 3": {
         "title": "Formulas, Functions, and Charts",
-        "summary": "Use common formulas and visualize results with charts.",
-        "topics": ["SUM/AVERAGE/MIN/MAX", "Cell references", "Basic chart types"],
+        "summary": (
+            "Connect calculations to storytelling. Build formula-driven analysis and prepare data "
+            "that can be visualized into clear trends and comparisons."
+        ),
+        "objectives": [
+            "Combine formulas to produce reusable analysis blocks.",
+            "Use references intentionally so updates flow through the model.",
+            "Prepare chart-ready ranges and defend which chart fits the question.",
+        ],
+        "mini_plan": [
+            "Warm-up: evaluate chart choice based on question type.",
+            "Guided practice: compute trend-supporting metrics from monthly data.",
+            "Application: create a concise analysis section ready for charting.",
+        ],
+        "topics": ["SUM/AVERAGE/MIN/MAX", "Cell references", "Chart-ready data prep", "Insight framing"],
+        "lab_prompt": (
+            "Create monthly performance data (at least 8 periods), compute rolling summary metrics, "
+            "and write 2-3 bullet insights that would pair with a line chart."
+        ),
+        "coach_questions": [
+            "Which metric best captures trend direction over time?",
+            "What changed in your summary after editing one monthly value?",
+            "Why is a line chart better here than a pie chart?",
+        ],
         "quiz": {
             "question": "Which chart is best for trends?",
             "options": ["Line", "Pie", "Bar"],
@@ -83,7 +150,7 @@ def _render_completion(lesson_name: str) -> None:
 
 def render() -> None:
     st.title("📚 Lessons")
-    st.write("Work through each lesson and complete its quiz.")
+    st.write("Each lesson now includes content, guided practice, and an embedded Spreadsheet + Gemini lab.")
 
     tabs = st.tabs(list(LESSONS.keys()))
 
@@ -94,9 +161,28 @@ def render() -> None:
             st.header(f"{lesson_name}: {lesson['title']}")
             st.write(lesson["summary"])
 
-            st.write("Key topics:")
+            st.subheader("Learning Objectives")
+            for objective in lesson["objectives"]:
+                st.write(f"- {objective}")
+
+            st.subheader("Lesson Flow")
+            for step in lesson["mini_plan"]:
+                st.write(f"- {step}")
+
+            st.subheader("Key Topics")
             for topic in lesson["topics"]:
                 st.write(f"- {topic}")
+
+            st.subheader("Guided Lab Task")
+            st.write(lesson["lab_prompt"])
+            st.caption("Use the embedded lab below. Gemini on the right can explain edits and formula outcomes.")
+
+            lab_namespace = lesson_name.lower().replace(" ", "_")
+            render_lab(namespace=f"{lab_namespace}_lab", show_title=False)
+
+            st.subheader("Reflection Prompts")
+            for prompt in lesson["coach_questions"]:
+                st.write(f"- {prompt}")
 
             st.subheader("Quiz")
             _render_quiz(lesson_name, lesson["quiz"])
