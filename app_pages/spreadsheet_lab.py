@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import os
 import re
 from io import BytesIO
@@ -403,6 +404,7 @@ def _init_sheet_state(namespace: str) -> dict[str, str]:
         "version": _session_key(namespace, "version"),
         "messages": _session_key(namespace, "chat_messages"),
         "cache": _session_key(namespace, "chat_cache"),
+        "lesson_signature": _session_key(namespace, "lesson_signature"),
         "import_button": _session_key(namespace, "import_button"),
         "new_sheet_button": _session_key(namespace, "new_sheet_button"),
         "apply_size_button": _session_key(namespace, "apply_size_button"),
@@ -427,6 +429,8 @@ def _init_sheet_state(namespace: str) -> dict[str, str]:
         st.session_state[keys["messages"]] = []
     if keys["cache"] not in st.session_state:
         st.session_state[keys["cache"]] = {}
+    if keys["lesson_signature"] not in st.session_state:
+        st.session_state[keys["lesson_signature"]] = ""
 
     return keys
 
@@ -474,6 +478,15 @@ def _build_lesson_context(lesson_context: dict[str, Any] | None) -> str:
     )
 
 
+def _lesson_signature(lesson_context: dict[str, Any] | None) -> str:
+    if not lesson_context:
+        return "no-lesson-context"
+    try:
+        return json.dumps(lesson_context, sort_keys=True, ensure_ascii=True)
+    except TypeError:
+        return str(lesson_context)
+
+
 def _ask_gemini(
     user_input: str,
     api_key: str | None,
@@ -487,7 +500,8 @@ def _ask_gemini(
         return "GOOGLE_API_KEY is missing. Add it to `.env` to enable Gemini responses."
 
     sheet_version = st.session_state.get(version_key, 0)
-    request_cache_key = f"{sheet_version}:{user_input.strip()}"
+    lesson_signature = _lesson_signature(lesson_context)
+    request_cache_key = f"{lesson_signature}:{sheet_version}:{user_input.strip()}"
     cache = st.session_state[cache_state_key]
 
     if request_cache_key in cache:
@@ -527,6 +541,10 @@ def render_lab(
 
     keys = _init_sheet_state(namespace)
     api_key = _init_gemini()
+    current_lesson_signature = _lesson_signature(lesson_context)
+    if st.session_state[keys["lesson_signature"]] != current_lesson_signature:
+        st.session_state[keys["lesson_signature"]] = current_lesson_signature
+        st.session_state[keys["cache"]] = {}
 
     left_col, right_col = st.columns([2.2, 1], gap="large")
 
@@ -651,6 +669,10 @@ def render_lab(
 
     with right_col:
         st.subheader("🤖 Gemini Spreadsheet Chat")
+        if lesson_context:
+            st.caption(
+                f"Lesson coach mode: {lesson_context.get('name', '')} - {lesson_context.get('title', '')}"
+            )
         st.caption("Ask things like: what changed? what changed in A3?")
         st.caption(f"Tracked sheet version: {st.session_state[keys['version']]}")
 
