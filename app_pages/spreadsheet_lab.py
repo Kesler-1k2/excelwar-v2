@@ -617,13 +617,19 @@ def render_lab(
 
         if mode == "Edit Values/Formulas":
             before_df = raw_df.copy()
+            edit_display_df = raw_df.copy()
+            edit_display_df.index = range(1, len(edit_display_df) + 1)
             edited_df = st.data_editor(
-                raw_df,
+                edit_display_df,
                 num_rows="dynamic",
                 use_container_width=True,
                 key=keys["editor"],
+                hide_index=False,
+                column_config={
+                    "_index": st.column_config.NumberColumn("Row", disabled=True),
+                },
             )
-            normalized_edited_df = _normalize_sheet(edited_df)
+            normalized_edited_df = _normalize_sheet(edited_df.reset_index(drop=True))
             changes = _diff_sheets(before_df, normalized_edited_df)
             st.session_state[keys["sheet"]] = normalized_edited_df
             if changes:
@@ -632,11 +638,17 @@ def render_lab(
             preview_df = _calculate_preview(st.session_state[keys["sheet"]])
         else:
             preview_df = _calculate_preview(raw_df)
+            preview_display_df = preview_df.copy()
+            preview_display_df.index = range(1, len(preview_display_df) + 1)
             st.data_editor(
-                preview_df,
+                preview_display_df,
                 disabled=True,
                 use_container_width=True,
                 key=keys["preview"],
+                hide_index=False,
+                column_config={
+                    "_index": st.column_config.NumberColumn("Row", disabled=True),
+                },
             )
 
         export_mode = st.selectbox(
