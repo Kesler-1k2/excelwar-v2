@@ -43,7 +43,6 @@ if st.session_state.active_page not in ALL_PAGES:
 def render_sidebar(active_page: str) -> None:
     st.sidebar.title("ExcelWars")
     st.sidebar.caption(f"Signed in as: {get_profile_name()}")
-    st.sidebar.markdown("### Navigation")
 
     for page in PRIMARY_PAGES:
         button_type = "primary" if page.key == active_page else "secondary"
