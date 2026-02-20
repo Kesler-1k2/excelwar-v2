@@ -442,6 +442,38 @@ def _build_change_context(change_log_key: str, limit: int = 20) -> str:
     return "Recent spreadsheet changes:\n" + "\n".join(lines)
 
 
+def _build_lesson_context(lesson_context: dict[str, Any] | None) -> str:
+    if not lesson_context:
+        return "No specific lesson context provided."
+
+    lesson_name = str(lesson_context.get("name", "")).strip()
+    lesson_title = str(lesson_context.get("title", "")).strip()
+    summary = str(lesson_context.get("summary", "")).strip()
+    lab_task = str(lesson_context.get("lab_prompt", "")).strip()
+    objectives = lesson_context.get("objectives", [])
+    topics = lesson_context.get("topics", [])
+
+    objective_lines = []
+    if isinstance(objectives, list):
+        objective_lines = [f"- {str(item)}" for item in objectives[:5]]
+
+    topic_lines = []
+    if isinstance(topics, list):
+        topic_lines = [f"- {str(item)}" for item in topics[:6]]
+
+    return "\n".join(
+        [
+            f"Lesson: {lesson_name} - {lesson_title}",
+            f"Lesson summary: {summary}",
+            "Lesson objectives:",
+            *(objective_lines or ["- No objectives listed."]),
+            "Lesson topics:",
+            *(topic_lines or ["- No topics listed."]),
+            f"Guided lab task: {lab_task}",
+        ]
+    )
+
+
 def _ask_gemini(
     user_input: str,
     api_key: str | None,
@@ -449,6 +481,7 @@ def _ask_gemini(
     change_log_key: str,
     version_key: str,
     cache_state_key: str,
+    lesson_context: dict[str, Any] | None = None,
 ) -> str:
     if not api_key:
         return "GOOGLE_API_KEY is missing. Add it to `.env` to enable Gemini responses."
@@ -461,9 +494,14 @@ def _ask_gemini(
         return cache[request_cache_key]
 
     prompt = (
-        "You are helping with a live spreadsheet.\n"
+        "You are an Excel lesson coach helping with a live spreadsheet.\n"
+        f"{_build_lesson_context(lesson_context)}\n\n"
         f"{_build_change_context(change_log_key)}\n\n"
-        "When asked what changed, answer with exact cell references and old/new values.\n"
+        "Guidance rules:\n"
+        "- Teach based on this lesson's goals and task.\n"
+        "- Give actionable next steps the learner can do in this sheet now.\n"
+        "- When asked what changed, answer with exact cell references and old/new values.\n"
+        "- Keep explanations short, clear, and student-friendly.\n"
         f"User question: {user_input}"
     )
 
@@ -478,7 +516,11 @@ def _ask_gemini(
     return reply
 
 
-def render_lab(namespace: str = "spreadsheet", show_title: bool = True) -> None:
+def render_lab(
+    namespace: str = "spreadsheet",
+    show_title: bool = True,
+    lesson_context: dict[str, Any] | None = None,
+) -> None:
     if show_title:
         st.title("🧮 Spreadsheet Lab")
         st.write("Single-grid spreadsheet editor with Excel-style formulas.")
@@ -633,6 +675,7 @@ def render_lab(namespace: str = "spreadsheet", show_title: bool = True) -> None:
                 change_log_key=keys["changes"],
                 version_key=keys["version"],
                 cache_state_key=keys["cache"],
+                lesson_context=lesson_context,
             )
             st.session_state[keys["messages"]].append({"role": "assistant", "content": bot_reply})
             st.rerun()

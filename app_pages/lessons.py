@@ -178,7 +178,18 @@ def render() -> None:
             st.caption("Use the embedded lab below. Gemini on the right can explain edits and formula outcomes.")
 
             lab_namespace = lesson_name.lower().replace(" ", "_")
-            render_lab(namespace=f"{lab_namespace}_lab", show_title=False)
+            render_lab(
+                namespace=f"{lab_namespace}_lab",
+                show_title=False,
+                lesson_context={
+                    "name": lesson_name,
+                    "title": lesson["title"],
+                    "summary": lesson["summary"],
+                    "objectives": lesson["objectives"],
+                    "topics": lesson["topics"],
+                    "lab_prompt": lesson["lab_prompt"],
+                },
+            )
 
             st.subheader("Reflection Prompts")
             for prompt in lesson["coach_questions"]:
