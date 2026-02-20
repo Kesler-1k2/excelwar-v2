@@ -567,20 +567,17 @@ def render() -> None:
             with st.chat_message(message["role"]):
                 st.markdown(message["content"])
 
-        question = st.text_input("Ask Gemini about this sheet", key="sheet_chat_input")
+        with st.form("sheet_chat_form", clear_on_submit=True):
+            question = st.text_input("Ask Gemini about this sheet", key="sheet_chat_input")
+            send_clicked = st.form_submit_button("Send", use_container_width=True)
 
-        send_col, clear_col = st.columns([1, 1])
-        with send_col:
-            send_clicked = st.button("Send", use_container_width=True, key="sheet_chat_send")
-        with clear_col:
-            if st.button("Clear Chat", use_container_width=True, key="sheet_chat_clear"):
-                st.session_state[SHEET_CHAT_MESSAGES_KEY] = []
-                st.rerun()
+        if st.button("Clear Chat", use_container_width=True, key="sheet_chat_clear"):
+            st.session_state[SHEET_CHAT_MESSAGES_KEY] = []
+            st.rerun()
 
         if send_clicked and question.strip():
             user_input = question.strip()
             st.session_state[SHEET_CHAT_MESSAGES_KEY].append({"role": "user", "content": user_input})
             bot_reply = _ask_gemini(user_input, api_key)
             st.session_state[SHEET_CHAT_MESSAGES_KEY].append({"role": "assistant", "content": bot_reply})
-            st.session_state.sheet_chat_input = ""
             st.rerun()
