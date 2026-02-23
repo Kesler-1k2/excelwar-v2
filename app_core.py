@@ -8,16 +8,16 @@ from typing import Any
 import streamlit as st
 
 PROFILE_DATA_FILE = Path("profile_data.json")
-PROFILE_PIC_FILE = Path("profile_pic.png")
 
-LESSON_NAMES = ("Lesson 1", "Lesson 2", "Lesson 3")
+# Keep lesson keys in one place for profile/progress tracking.
+LESSON_NAMES = tuple(f"Lesson {index}" for index in range(1, 13))
 XP_PER_LEVEL = 150
 XP_PER_LESSON = 50
 XP_PER_QUIZ = 20
 
 
 def _default_profile_data() -> dict[str, Any]:
-    return {"name": "", "profile_pic": None}
+    return {"name": ""}
 
 
 def _default_learning_state() -> dict[str, Any]:
@@ -30,6 +30,23 @@ def _default_learning_state() -> dict[str, Any]:
         "badges": [],
         "activity_log": [],
     }
+
+
+def _ensure_lesson_keys() -> None:
+    completed = st.session_state.get("completed")
+    if not isinstance(completed, dict):
+        completed = {}
+
+    quiz_completion = st.session_state.get("quiz_completion")
+    if not isinstance(quiz_completion, dict):
+        quiz_completion = {}
+
+    for lesson in LESSON_NAMES:
+        completed.setdefault(lesson, False)
+        quiz_completion.setdefault(lesson, False)
+
+    st.session_state.completed = completed
+    st.session_state.quiz_completion = quiz_completion
 
 
 def load_profile_data() -> dict[str, Any]:
@@ -45,15 +62,13 @@ def load_profile_data() -> dict[str, Any]:
     if not isinstance(data, dict):
         return _default_profile_data()
 
-    return {
-        "name": data.get("name", "") or "",
-        "profile_pic": data.get("profile_pic"),
-    }
+    return {"name": str(data.get("name", "") or "")}
 
 
 def save_profile_data(profile_data: dict[str, Any]) -> None:
+    safe_data = {"name": str(profile_data.get("name", "") or "")}
     with PROFILE_DATA_FILE.open("w", encoding="utf-8") as file:
-        json.dump(profile_data, file, ensure_ascii=False, indent=2)
+        json.dump(safe_data, file, ensure_ascii=False, indent=2)
 
 
 def init_app_state() -> None:
@@ -67,6 +82,8 @@ def init_app_state() -> None:
                 st.session_state[key] = value[:]
             else:
                 st.session_state[key] = value
+
+    _ensure_lesson_keys()
 
     if "profile_data" not in st.session_state:
         profile_data = load_profile_data()
@@ -121,9 +138,21 @@ def mark_quiz_completed(lesson_name: str) -> bool:
     return True
 
 
+def completed_lesson_count() -> tuple[int, int]:
+    completed = sum(1 for is_complete in st.session_state.completed.values() if is_complete)
+    return completed, len(LESSON_NAMES)
+
+
+def completion_ratio() -> float:
+    completed, total = completed_lesson_count()
+    if total == 0:
+        return 0.0
+    return completed / total
+
+
 def get_profile_name() -> str:
     name = st.session_state.get("student_name", "").strip()
-    return name or "User"
+    return name or "Guest"
 
 
 def navigate(page_key: str) -> None:

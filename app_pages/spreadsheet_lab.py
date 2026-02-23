@@ -16,6 +16,9 @@ from dotenv import load_dotenv
 DEFAULT_ROWS = 12
 DEFAULT_COLS = 8
 MODEL_NAME = "gemini-2.5-flash"
+CHANGE_HISTORY_LIMIT = 300
+SHEET_CONTEXT_MAX_ROWS = 30
+SHEET_CONTEXT_MAX_COLS = 12
 
 RANGE_PATTERN = re.compile(r"\b([A-Z]+)([1-9]\d*):([A-Z]+)([1-9]\d*)\b")
 CELL_PATTERN = re.compile(r"\b([A-Z]+)([1-9]\d*)\b")
@@ -446,6 +449,51 @@ def _build_change_context(change_log_key: str, limit: int = 20) -> str:
     return "Recent spreadsheet changes:\n" + "\n".join(lines)
 
 
+def _build_sheet_context(sheet_key: str) -> str:
+    # Give Gemini a full-sheet snapshot instead of only last edited cells.
+    sheet = st.session_state.get(sheet_key)
+    if not isinstance(sheet, pd.DataFrame) or sheet.empty:
+        return "Spreadsheet state: empty sheet."
+
+    raw_df = _normalize_sheet(sheet)
+    safe_raw = raw_df.fillna("").astype(str)
+
+    formula_cells = int(safe_raw.apply(lambda column: column.str.startswith("=").sum()).sum())
+    non_empty_cells = int((safe_raw != "").sum().sum())
+    numeric_cells = int(pd.to_numeric(safe_raw.stack(), errors="coerce").notna().sum())
+
+    row_count, col_count = safe_raw.shape
+    max_rows = min(SHEET_CONTEXT_MAX_ROWS, row_count)
+    max_cols = min(SHEET_CONTEXT_MAX_COLS, col_count)
+
+    raw_preview = safe_raw.iloc[:max_rows, :max_cols]
+    calculated_preview = _calculate_preview(raw_df).iloc[:max_rows, :max_cols].fillna("")
+    calculated_preview = calculated_preview.astype(str)
+
+    row_note = ""
+    if row_count > max_rows:
+        row_note = f" (showing first {max_rows} of {row_count} rows)"
+
+    col_note = ""
+    if col_count > max_cols:
+        col_note = f" (showing first {max_cols} of {col_count} columns)"
+
+    return "\n".join(
+        [
+            "Spreadsheet snapshot:",
+            f"- Rows: {row_count}{row_note}",
+            f"- Columns: {col_count}{col_note}",
+            f"- Non-empty cells: {non_empty_cells}",
+            f"- Numeric cells: {numeric_cells}",
+            f"- Formula cells: {formula_cells}",
+            "Raw values/formulas preview:",
+            raw_preview.to_string(index=False),
+            "Calculated values preview:",
+            calculated_preview.to_string(index=False),
+        ]
+    )
+
+
 def _build_lesson_context(lesson_context: dict[str, Any] | None) -> str:
     if not lesson_context:
         return "No specific lesson context provided."
@@ -491,6 +539,7 @@ def _ask_gemini(
     user_input: str,
     api_key: str | None,
     *,
+    sheet_state_key: str,
     change_log_key: str,
     version_key: str,
     cache_state_key: str,
@@ -510,9 +559,11 @@ def _ask_gemini(
     prompt = (
         "You are an Excel lesson coach helping with a live spreadsheet.\n"
         f"{_build_lesson_context(lesson_context)}\n\n"
+        f"{_build_sheet_context(sheet_state_key)}\n\n"
         f"{_build_change_context(change_log_key)}\n\n"
         "Guidance rules:\n"
         "- Teach based on this lesson's goals and task.\n"
+        "- Use the full sheet snapshot for analysis, not only recent edits.\n"
         "- Give actionable next steps the learner can do in this sheet now.\n"
         "- When asked what changed, answer with exact cell references and old/new values.\n"
         "- Keep explanations short, clear, and student-friendly.\n"
@@ -537,8 +588,8 @@ def render_lab(
     show_new_sheet_button: bool = True,
 ) -> None:
     if show_title:
-        st.title("🧮 Spreadsheet Lab")
-        st.write("Single-grid spreadsheet editor with Excel-style formulas.")
+        st.title("Spreadsheet Lab")
+        st.write("Single-grid spreadsheet editor with formula support.")
 
     keys = _init_sheet_state(namespace)
     api_key = _init_gemini()
@@ -632,11 +683,12 @@ def render_lab(
             before_df = raw_df.copy()
             edit_display_df = raw_df.copy()
             edit_display_df.index = range(1, len(edit_display_df) + 1)
+            editor_widget_key = f"{keys['editor']}_{st.session_state[keys['version']]}"
             edited_df = st.data_editor(
                 edit_display_df,
                 num_rows="dynamic",
                 use_container_width=True,
-                key=keys["editor"],
+                key=editor_widget_key,
                 hide_index=False,
                 column_config={
                     "_index": st.column_config.NumberColumn("Row", disabled=True),
@@ -644,9 +696,11 @@ def render_lab(
             )
             normalized_edited_df = _normalize_sheet(edited_df.reset_index(drop=True))
             changes = _diff_sheets(before_df, normalized_edited_df)
-            st.session_state[keys["sheet"]] = normalized_edited_df
             if changes:
-                st.session_state[keys["changes"]] = changes
+                st.session_state[keys["sheet"]] = normalized_edited_df
+                history = st.session_state[keys["changes"]]
+                history.extend(changes)
+                st.session_state[keys["changes"]] = history[-CHANGE_HISTORY_LIMIT:]
                 st.session_state[keys["version"]] += 1
                 formula_entered = any(
                     item["new"].strip().startswith("=") and item["new"] != item["old"]
@@ -654,7 +708,7 @@ def render_lab(
                 )
                 if formula_entered:
                     st.session_state[keys["mode_radio"]] = "Calculated Preview"
-                    st.rerun()
+                st.rerun()
             preview_df = _calculate_preview(st.session_state[keys["sheet"]])
         else:
             preview_df = _calculate_preview(raw_df)
@@ -700,7 +754,7 @@ def render_lab(
         )
 
     with right_col:
-        st.subheader("🤖 Gemini Spreadsheet Chat")
+        st.subheader("Gemini Spreadsheet Chat")
         if lesson_context:
             st.caption(
                 f"Lesson coach mode: {lesson_context.get('name', '')} - {lesson_context.get('title', '')}"
@@ -708,31 +762,34 @@ def render_lab(
         st.caption("Ask things like: what changed? what changed in A3?")
         st.caption(f"Tracked sheet version: {st.session_state[keys['version']]}")
 
-        for message in st.session_state[keys["messages"]]:
-            with st.chat_message(message["role"]):
-                st.markdown(message["content"])
-
-        with st.form(keys["chat_form"], clear_on_submit=True):
-            question = st.text_input("Ask Gemini about this sheet", key=keys["chat_input"])
+        with st.form(keys["chat_form"], clear_on_submit=False):
+            st.text_input("Ask Gemini about this sheet", key=keys["chat_input"])
             send_clicked = st.form_submit_button("Send", use_container_width=True)
 
         if st.button("Clear Chat", use_container_width=True, key=keys["chat_clear"]):
             st.session_state[keys["messages"]] = []
+            st.session_state[keys["chat_input"]] = ""
             st.rerun()
 
-        if send_clicked and question.strip():
-            user_input = question.strip()
-            st.session_state[keys["messages"]].append({"role": "user", "content": user_input})
-            bot_reply = _ask_gemini(
-                user_input,
-                api_key,
-                change_log_key=keys["changes"],
-                version_key=keys["version"],
-                cache_state_key=keys["cache"],
-                lesson_context=lesson_context,
-            )
-            st.session_state[keys["messages"]].append({"role": "assistant", "content": bot_reply})
-            st.rerun()
+        if send_clicked:
+            user_input = st.session_state.get(keys["chat_input"], "").strip()
+            if user_input:
+                st.session_state[keys["messages"]].append({"role": "user", "content": user_input})
+                bot_reply = _ask_gemini(
+                    user_input,
+                    api_key,
+                    sheet_state_key=keys["sheet"],
+                    change_log_key=keys["changes"],
+                    version_key=keys["version"],
+                    cache_state_key=keys["cache"],
+                    lesson_context=lesson_context,
+                )
+                st.session_state[keys["messages"]].append({"role": "assistant", "content": bot_reply})
+            st.session_state[keys["chat_input"]] = ""
+
+        for message in st.session_state[keys["messages"]]:
+            with st.chat_message(message["role"]):
+                st.markdown(message["content"])
 
 
 def render() -> None:

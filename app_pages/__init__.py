@@ -1,1 +1,1 @@
-"""Page modules for ExcelWars."""
+# Page modules package for ExcelWars.

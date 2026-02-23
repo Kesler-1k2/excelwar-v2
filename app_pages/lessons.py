@@ -10,219 +10,327 @@ from app_core import (
 )
 from app_pages.spreadsheet_lab import render_lab
 
-LESSONS = {
-    "Lesson 1": {
-        "title": "Basics of Excel",
-        "summary": (
-            "Build fluency with the worksheet grid, clean data entry habits, and first formulas. "
-            "By the end, you can structure a small table and compute totals safely."
-        ),
+LESSON_BLUEPRINTS = [
+    {
+        "title": "Totals with SUM",
+        "summary": "Build a clean expense table and calculate totals with SUM.",
+        "formula_focus": "SUM",
+        "topics": ["Structured data entry", "Cell references", "SUM basics"],
         "objectives": [
-            "Identify rows, columns, and cell addresses without guessing.",
-            "Enter consistent numeric/text data and avoid mixed formats.",
-            "Use core formulas with confidence: SUM, AVERAGE, MIN, and MAX.",
+            "Enter consistent numeric values in one column.",
+            "Use SUM to total a selected range.",
+            "Check how SUM updates after an edit.",
         ],
-        "mini_plan": [
-            "Warm-up: map cell addresses and movement shortcuts.",
-            "Guided practice: build a simple weekly expense table.",
-            "Application: calculate totals, average spend, and highest/lowest values.",
-        ],
-        "topics": ["Workbook structure", "Entering data", "Simple formatting", "Core formulas"],
-        "lab_prompt": (
-            "Create columns for Category and Amount. Enter at least six expense rows, then use formulas "
-            "to compute total, average, minimum, and maximum in summary cells."
-        ),
-        "coach_questions": [
-            "Which value is your maximum spend, and in which category does it appear?",
-            "What changed when you edited one Amount cell and recalculated?",
-            "If a value is blank, how does your summary area respond?",
-        ],
-        "steps": [
-            {
-                "task": "Create headers `Category` and `Amount` in row 1.",
-                "explain": "This gives your data a clear structure and makes formulas easier to read.",
-            },
-            {
-                "task": "Enter at least 6 expense rows under those headers.",
-                "explain": "A larger sample helps you practice meaningful totals and averages.",
-            },
-            {
-                "task": "Add `SUM`, `AVERAGE`, `MIN`, and `MAX` formulas in summary cells.",
-                "explain": "These are foundational functions you will reuse in every later lesson.",
-                "formulas": [
-                    "=SUM(B2:B7)",
-                    "=AVERAGE(B2:B7)",
-                    "=MIN(B2:B7)",
-                    "=MAX(B2:B7)",
-                ],
-            },
-            {
-                "task": "Edit one amount value and observe formula updates.",
-                "explain": "You learn that formulas are dynamic and tied to cell references.",
-            },
-            {
-                "task": "Ask Gemini: `What changed?` and `Explain my formulas.`",
-                "explain": "Gemini confirms exact edits and reinforces the concept behind each formula.",
-            },
-            {
-                "task": "Submit the quiz and mark the lesson complete.",
-                "explain": "This checks understanding and records XP progress.",
-            },
-        ],
+        "practice_task": "Create Amount values in B2:B10 and return the total in B11.",
         "quiz": {
-            "question": "Which function adds values together?",
-            "options": ["SUM", "IF", "LEN"],
-            "answer": "SUM",
+            "question": "Which formula totals B2 through B10?",
+            "options": ["=SUM(B2:B10)", "=AVG(B2:B10)", "=COUNT(B2:B10)"],
+            "answer": "=SUM(B2:B10)",
         },
+        "steps": [
+            {"task": "Create headers Category and Amount."},
+            {"task": "Enter at least 8 rows of amount data."},
+            {
+                "task": "Add a SUM formula for the total.",
+                "explain": "SUM adds every numeric value in the selected range.",
+                "formulas": ["=SUM(B2:B10)"],
+            },
+        ],
     },
-    "Lesson 2": {
-        "title": "Cell Formatting and Organization",
-        "summary": (
-            "Turn raw tables into readable, decision-ready sheets. Focus on formatting intent, "
-            "table organization, and trustworthy sorting/filtering habits."
-        ),
+    {
+        "title": "Averages with AVERAGE",
+        "summary": "Compute a typical value and explain when average is useful.",
+        "formula_focus": "AVERAGE",
+        "topics": ["Descriptive statistics", "Range selection", "Data review"],
         "objectives": [
-            "Apply number and date formats that match the data type.",
-            "Use visual hierarchy so headers and key fields are immediately clear.",
-            "Organize records with sorting/filtering while preserving data integrity.",
+            "Calculate mean values from a numeric range.",
+            "Compare average and total results.",
+            "Interpret average in plain language.",
         ],
-        "mini_plan": [
-            "Warm-up: compare poor vs strong spreadsheet formatting decisions.",
-            "Guided practice: standardize a mixed-format sales table.",
-            "Application: sort and filter to answer business questions quickly.",
-        ],
-        "topics": ["Number formats", "Cell styling", "Sorting and filtering", "Data hygiene"],
-        "lab_prompt": (
-            "Build a product sales table with Product, Region, Units, and Revenue. Format units as whole numbers "
-            "and revenue as currency. Sort by Revenue and identify the top performer."
-        ),
-        "coach_questions": [
-            "Which format choices improved readability the most?",
-            "What is the risk of sorting only one column instead of the full table?",
-            "How would you explain your filter logic to someone reviewing your file?",
-        ],
-        "steps": [
-            {
-                "task": "Create columns: `Product`, `Region`, `Units`, `Revenue`.",
-                "explain": "This mirrors a realistic business dataset with mixed field types.",
-            },
-            {
-                "task": "Enter sample rows and format `Units` as whole numbers and `Revenue` as currency.",
-                "explain": "Correct formats improve accuracy and interpretation.",
-            },
-            {
-                "task": "Style headers clearly (bold/alignment/spacing).",
-                "explain": "Visual hierarchy makes your sheet easier to scan and review.",
-            },
-            {
-                "task": "Sort by `Revenue` and identify top-performing rows.",
-                "explain": "Sorting turns raw records into ranked insights.",
-                "formulas": [
-                    "=SUM(C2:C10)",
-                    "=SUM(D2:D10)",
-                    "=AVERAGE(D2:D10)",
-                    "=MAX(D2:D10)",
-                ],
-            },
-            {
-                "task": "Ask Gemini how to improve your table clarity and what changed after edits.",
-                "explain": "You get coaching on formatting and organization while verifying sheet changes.",
-            },
-            {
-                "task": "Submit quiz and complete lesson.",
-                "explain": "You validate the skill and lock in progress.",
-            },
-        ],
+        "practice_task": "Enter scores in C2:C11 and calculate the mean in C12.",
         "quiz": {
-            "question": "Filtering does what?",
-            "options": ["Deletes data", "Shows selected data", "Changes numbers"],
-            "answer": "Shows selected data",
+            "question": "Which function returns the mean?",
+            "options": ["AVERAGE", "MAX", "ROUND"],
+            "answer": "AVERAGE",
         },
+        "steps": [
+            {"task": "Enter 10 numeric scores in column C."},
+            {
+                "task": "Compute the mean score.",
+                "explain": "AVERAGE divides the total by the count of numbers.",
+                "formulas": ["=AVERAGE(C2:C11)"],
+            },
+        ],
     },
-    "Lesson 3": {
-        "title": "Formulas, Functions, and Charts",
-        "summary": (
-            "Connect calculations to storytelling. Build formula-driven analysis and prepare data "
-            "that can be visualized into clear trends and comparisons."
-        ),
+    {
+        "title": "Lowest Value with MIN",
+        "summary": "Identify the smallest value in a dataset quickly.",
+        "formula_focus": "MIN",
+        "topics": ["Comparing values", "Range scanning", "Outlier checks"],
         "objectives": [
-            "Combine formulas to produce reusable analysis blocks.",
-            "Use references intentionally so updates flow through the model.",
-            "Prepare chart-ready ranges and defend which chart fits the question.",
+            "Use MIN to detect the smallest numeric value.",
+            "Validate a result by checking source cells.",
+            "Use MIN in quality checks.",
         ],
-        "mini_plan": [
-            "Warm-up: evaluate chart choice based on question type.",
-            "Guided practice: compute trend-supporting metrics from monthly data.",
-            "Application: create a concise analysis section ready for charting.",
-        ],
-        "topics": ["SUM/AVERAGE/MIN/MAX", "Cell references", "Chart-ready data prep", "Insight framing"],
-        "lab_prompt": (
-            "Create monthly performance data (at least 8 periods), compute rolling summary metrics, "
-            "and write 2-3 bullet insights that would pair with a line chart."
-        ),
-        "coach_questions": [
-            "Which metric best captures trend direction over time?",
-            "What changed in your summary after editing one monthly value?",
-            "Why is a line chart better here than a pie chart?",
-        ],
-        "steps": [
-            {
-                "task": "Create monthly data for at least 8 periods (`Month`, `Value`).",
-                "explain": "This builds a trend-ready dataset for analysis.",
-            },
-            {
-                "task": "Add summary formulas (total, average, and other useful metrics).",
-                "explain": "You convert raw values into interpretable performance indicators.",
-                "formulas": [
-                    "=SUM(B2:B9)",
-                    "=AVERAGE(B2:B9)",
-                    "=MIN(B2:B9)",
-                    "=MAX(B2:B9)",
-                ],
-            },
-            {
-                "task": "Write 2-3 insight bullets based on your calculations.",
-                "explain": "This practices communicating results, not only computing them.",
-            },
-            {
-                "task": "Change one monthly value and observe how metrics shift.",
-                "explain": "You see how source edits propagate through analytical outputs.",
-                "formulas": [
-                    "=B9-B8",
-                    "=ROUND((B9-B8)/B8*100,2)",
-                ],
-            },
-            {
-                "task": "Ask Gemini to guide next improvements and explain chart choice.",
-                "explain": "You align spreadsheet work with lesson goals on trend storytelling.",
-            },
-            {
-                "task": "Submit quiz and mark lesson complete.",
-                "explain": "You verify mastery and update your lesson progress.",
-            },
-        ],
+        "practice_task": "Enter monthly costs in D2:D9 and return the lowest value in D10.",
         "quiz": {
-            "question": "Which chart is best for trends?",
-            "options": ["Line", "Pie", "Bar"],
-            "answer": "Line",
+            "question": "What does MIN return?",
+            "options": ["Largest value", "Smallest value", "Number of cells"],
+            "answer": "Smallest value",
         },
+        "steps": [
+            {"task": "Enter cost values in D2:D9."},
+            {
+                "task": "Calculate the smallest value.",
+                "explain": "MIN returns the lowest numeric value in the range.",
+                "formulas": ["=MIN(D2:D9)"],
+            },
+        ],
     },
-}
+    {
+        "title": "Highest Value with MAX",
+        "summary": "Find top values for ranking and reporting.",
+        "formula_focus": "MAX",
+        "topics": ["Ranking", "Performance metrics", "Comparative analysis"],
+        "objectives": [
+            "Use MAX to identify highest performance values.",
+            "Check whether your max value matches the table.",
+            "Use MAX in summary sections.",
+        ],
+        "practice_task": "Enter weekly sales in E2:E9 and return the highest value in E10.",
+        "quiz": {
+            "question": "Which function finds the largest number?",
+            "options": ["MAX", "MIN", "IF"],
+            "answer": "MAX",
+        },
+        "steps": [
+            {"task": "Enter numeric sales data in E2:E9."},
+            {
+                "task": "Calculate the top value.",
+                "explain": "MAX returns the highest numeric value in the range.",
+                "formulas": ["=MAX(E2:E9)"],
+            },
+        ],
+    },
+    {
+        "title": "Counts with COUNT",
+        "summary": "Count how many numeric values exist in a range.",
+        "formula_focus": "COUNT",
+        "topics": ["Completeness checks", "Numeric detection", "Data auditing"],
+        "objectives": [
+            "Use COUNT to count numeric cells only.",
+            "Understand why text cells are ignored by COUNT.",
+            "Use COUNT to check data completeness.",
+        ],
+        "practice_task": "Mix text and numbers in F2:F12 and count numeric entries in F13.",
+        "quiz": {
+            "question": "COUNT includes which cells?",
+            "options": ["Only numeric cells", "All non-empty cells", "Only text cells"],
+            "answer": "Only numeric cells",
+        },
+        "steps": [
+            {"task": "Enter a mix of numbers and text in F2:F12."},
+            {
+                "task": "Count numeric values.",
+                "explain": "COUNT ignores text and blank cells.",
+                "formulas": ["=COUNT(F2:F12)"],
+            },
+        ],
+    },
+    {
+        "title": "Precision with ROUND",
+        "summary": "Format results for reporting by controlling decimal places.",
+        "formula_focus": "ROUND",
+        "topics": ["Decimal formatting", "Readable reports", "Numeric precision"],
+        "objectives": [
+            "Round decimal values to required precision.",
+            "Compare raw and rounded values.",
+            "Apply rounding to percentage or currency outputs.",
+        ],
+        "practice_task": "Place 12.9876 in G2 and round to 2 decimals in G3.",
+        "quiz": {
+            "question": "What does ROUND(value, 2) do?",
+            "options": ["Rounds to 2 decimal places", "Rounds to nearest 10", "Counts decimals"],
+            "answer": "Rounds to 2 decimal places",
+        },
+        "steps": [
+            {"task": "Enter decimal values in G2:G6."},
+            {
+                "task": "Create a rounded result column.",
+                "explain": "ROUND controls how many digits remain after the decimal.",
+                "formulas": ["=ROUND(G2,2)"],
+            },
+        ],
+    },
+    {
+        "title": "Decisions with IF",
+        "summary": "Create pass/fail and threshold checks with IF logic.",
+        "formula_focus": "IF",
+        "topics": ["Logical tests", "Conditional outputs", "Rule-based labeling"],
+        "objectives": [
+            "Write IF tests with clear true/false outputs.",
+            "Check threshold logic for simple grading.",
+            "Use IF to label table rows.",
+        ],
+        "practice_task": "If H2 is 75, return Pass for >= 50, otherwise Fail.",
+        "quiz": {
+            "question": "Which function creates conditional outcomes?",
+            "options": ["IF", "SUM", "CONCAT"],
+            "answer": "IF",
+        },
+        "steps": [
+            {"task": "Enter sample scores in H2:H10."},
+            {
+                "task": "Label each row Pass or Fail.",
+                "explain": "IF evaluates one condition and returns one of two values.",
+                "formulas": ['=IF(H2>=50,"Pass","Fail")'],
+            },
+        ],
+    },
+    {
+        "title": "Multiple Conditions with AND",
+        "summary": "Require multiple conditions to be true before approving a result.",
+        "formula_focus": "AND",
+        "topics": ["Compound logic", "Validation rules", "Boolean results"],
+        "objectives": [
+            "Combine two or more checks into one decision.",
+            "Recognize when AND returns TRUE.",
+            "Use AND inside IF formulas.",
+        ],
+        "practice_task": "Return Eligible if Score >= 60 and Attendance >= 80.",
+        "quiz": {
+            "question": "When does AND return TRUE?",
+            "options": ["When all conditions are true", "When any condition is true", "When no condition is true"],
+            "answer": "When all conditions are true",
+        },
+        "steps": [
+            {"task": "Enter Score in I and Attendance in J columns."},
+            {
+                "task": "Create eligibility logic.",
+                "explain": "AND returns TRUE only when every test is TRUE.",
+                "formulas": ['=IF(AND(I2>=60,J2>=80),"Eligible","Not Eligible")'],
+            },
+        ],
+    },
+    {
+        "title": "Alternative Conditions with OR",
+        "summary": "Accept any of several valid conditions with OR.",
+        "formula_focus": "OR",
+        "topics": ["Fallback rules", "Flexible criteria", "Boolean logic"],
+        "objectives": [
+            "Build formulas where any valid condition passes.",
+            "Compare OR behavior against AND.",
+            "Apply OR to qualification rules.",
+        ],
+        "practice_task": "Mark Approved if either K2 >= 90 or L2 = \"Yes\".",
+        "quiz": {
+            "question": "OR returns TRUE when:",
+            "options": ["Any condition is true", "All conditions are true", "No conditions are true"],
+            "answer": "Any condition is true",
+        },
+        "steps": [
+            {"task": "Create score and override columns in K and L."},
+            {
+                "task": "Apply OR-based approval logic.",
+                "explain": "OR returns TRUE if at least one condition is TRUE.",
+                "formulas": ['=IF(OR(K2>=90,L2="Yes"),"Approved","Review")'],
+            },
+        ],
+    },
+    {
+        "title": "Reverse Logic with NOT",
+        "summary": "Invert logic tests to simplify rejection and exception rules.",
+        "formula_focus": "NOT",
+        "topics": ["Logic inversion", "Exception checks", "Rule clarity"],
+        "objectives": [
+            "Flip logical outcomes with NOT.",
+            "Use NOT for exception reporting.",
+            "Combine NOT with IF for clear messaging.",
+        ],
+        "practice_task": "Return Missing if M2 is blank; otherwise return Entered.",
+        "quiz": {
+            "question": "What does NOT(TRUE) return?",
+            "options": ["FALSE", "TRUE", "0"],
+            "answer": "FALSE",
+        },
+        "steps": [
+            {"task": "Prepare cells where some entries are blank."},
+            {
+                "task": "Label blank-value exceptions.",
+                "explain": "NOT reverses TRUE/FALSE output from another logical test.",
+                "formulas": ['=IF(NOT(M2<>""),"Missing","Entered")'],
+            },
+        ],
+    },
+    {
+        "title": "Text Length with LEN",
+        "summary": "Measure text length for data validation and formatting checks.",
+        "formula_focus": "LEN",
+        "topics": ["Text validation", "Character counts", "Input quality"],
+        "objectives": [
+            "Count characters in text entries.",
+            "Validate ID length requirements.",
+            "Use LEN in basic quality checks.",
+        ],
+        "practice_task": "Place an ID in N2 and return its character count in N3.",
+        "quiz": {
+            "question": "LEN(\"Excel\") returns:",
+            "options": ["5", "4", "6"],
+            "answer": "5",
+        },
+        "steps": [
+            {"task": "Enter sample IDs or codes in N2:N8."},
+            {
+                "task": "Count character lengths.",
+                "explain": "LEN returns the number of characters in a cell value.",
+                "formulas": ["=LEN(N2)"],
+            },
+        ],
+    },
+    {
+        "title": "Text Joining with CONCAT",
+        "summary": "Combine multiple text fields into a final display string.",
+        "formula_focus": "CONCAT",
+        "topics": ["Text assembly", "Readable output", "Concatenation patterns"],
+        "objectives": [
+            "Join first and last name fields.",
+            "Add separators for readability.",
+            "Build labels from multiple source columns.",
+        ],
+        "practice_task": "Join first name in O2 and last name in P2 into Q2.",
+        "quiz": {
+            "question": "Which function combines text values?",
+            "options": ["CONCAT", "COUNT", "MAX"],
+            "answer": "CONCAT",
+        },
+        "steps": [
+            {"task": "Enter first names in O and last names in P."},
+            {
+                "task": "Create a full-name output column.",
+                "explain": "CONCAT joins text values in the order provided.",
+                "formulas": ['=CONCAT(O2," ",P2)'],
+            },
+        ],
+    },
+]
+
+LESSONS = {f"Lesson {index}": lesson for index, lesson in enumerate(LESSON_BLUEPRINTS, start=1)}
+
+
+def _render_bullets(items: list[str]) -> None:
+    bullet_text = "\n".join(f"- {item}" for item in items)
+    st.markdown(bullet_text)
 
 
 def _render_quiz(lesson_name: str, quiz: dict[str, object]) -> None:
-    question = quiz["question"]
-    options = quiz["options"]
-    answer = quiz["answer"]
-
     selection = st.radio(
-        question,
-        options,
+        quiz["question"],
+        quiz["options"],
         key=f"quiz_option_{lesson_name}",
     )
 
     if st.button("Submit Quiz", key=f"quiz_submit_{lesson_name}"):
-        if selection == answer:
+        if selection == quiz["answer"]:
             if mark_quiz_completed(lesson_name):
                 add_xp(XP_PER_QUIZ, f"{lesson_name} quiz")
                 award_badge("Quiz Master")
@@ -248,9 +356,29 @@ def _render_completion(lesson_name: str) -> None:
             st.info("This lesson is already complete.")
 
 
+def _lesson_examples(steps: list[dict[str, object]]) -> list[str]:
+    examples: list[str] = []
+    seen: set[str] = set()
+
+    for step in steps:
+        formulas = step.get("formulas", [])
+        if not isinstance(formulas, list):
+            continue
+
+        for formula in formulas:
+            formula_text = str(formula).strip()
+            if formula_text and formula_text not in seen:
+                seen.add(formula_text)
+                examples.append(formula_text)
+
+    return examples
+
+
 def render() -> None:
-    st.title("📚 Lessons")
-    st.write("Each lesson now includes content, guided practice, and an embedded Spreadsheet + Gemini lab.")
+    st.title("Lessons")
+    st.markdown(
+        "Each lesson focuses on one core Excel function with a spreadsheet practice task and quiz."
+    )
 
     tabs = st.tabs(list(LESSONS.keys()))
 
@@ -259,46 +387,32 @@ def render() -> None:
 
         with tab:
             st.header(f"{lesson_name}: {lesson['title']}")
-            st.write(lesson["summary"])
+            st.markdown(lesson["summary"])
+            st.caption(f"Function focus: {lesson['formula_focus']}")
 
             st.subheader("Learning Objectives")
-            for objective in lesson["objectives"]:
-                st.write(f"- {objective}")
-
-            st.subheader("Lesson Flow")
-            for step in lesson["mini_plan"]:
-                st.write(f"- {step}")
+            _render_bullets(lesson["objectives"])
 
             st.subheader("Key Topics")
-            for topic in lesson["topics"]:
-                st.write(f"- {topic}")
+            _render_bullets(lesson["topics"])
 
-            st.subheader("Guided Lab Task")
-            st.write(lesson["lab_prompt"])
-            st.caption("Use the embedded lab below. Gemini on the right can explain edits and formula outcomes.")
+            st.subheader("Spreadsheet Practice Task")
+            st.markdown(lesson["practice_task"])
+            st.caption("Use the embedded spreadsheet to complete this task and review suggestions.")
 
-            st.subheader("Step-by-Step Instructions")
+            st.subheader("Step-by-Step Practice")
             for index, step in enumerate(lesson["steps"], start=1):
                 st.markdown(f"**Step {index}:** {step['task']}")
-                st.caption(f"What this does: {step['explain']}")
+                explain = step.get("explain")
+                if explain:
+                    st.caption(f"Why this matters: {explain}")
+
                 formulas = step.get("formulas", [])
                 if formulas:
-                    st.code("\n".join(formulas), language="text")
+                    st.code("\n".join(str(formula) for formula in formulas), language="text")
 
+            lesson_examples = _lesson_examples(lesson["steps"])
             lab_namespace = lesson_name.lower().replace(" ", "_")
-            lesson_examples: list[str] = []
-            for step in lesson["steps"]:
-                formulas = step.get("formulas", [])
-                if formulas:
-                    lesson_examples.extend(str(formula) for formula in formulas)
-
-            deduped_examples: list[str] = []
-            seen_examples: set[str] = set()
-            for formula in lesson_examples:
-                if formula not in seen_examples:
-                    seen_examples.add(formula)
-                    deduped_examples.append(formula)
-
             render_lab(
                 namespace=f"{lab_namespace}_lab",
                 show_title=False,
@@ -309,17 +423,21 @@ def render() -> None:
                     "summary": lesson["summary"],
                     "objectives": lesson["objectives"],
                     "topics": lesson["topics"],
-                    "lab_prompt": lesson["lab_prompt"],
-                    "examples": deduped_examples[:8],
+                    "lab_prompt": lesson["practice_task"],
+                    "examples": lesson_examples[:8],
                 },
             )
-
-            st.subheader("Reflection Prompts")
-            for prompt in lesson["coach_questions"]:
-                st.write(f"- {prompt}")
 
             st.subheader("Quiz")
             _render_quiz(lesson_name, lesson["quiz"])
 
             st.subheader("Completion")
             _render_completion(lesson_name)
+
+
+def formula_coverage() -> tuple[int, int]:
+    # Helper used for quick curriculum sanity checks.
+    formulas = {str(lesson.get("formula_focus", "")).strip().upper() for lesson in LESSONS.values()}
+    formulas.discard("")
+
+    return len(formulas), len(LESSONS)

@@ -6,34 +6,29 @@ from typing import Callable
 import streamlit as st
 
 from app_core import get_profile_name, init_app_state, navigate
-from app_pages import chatbot, home, lessons, practice_lab, profile_progress, spreadsheet_lab
+from app_pages import chatbot, home, lessons, profile_progress, spreadsheet_lab
 
 
 @dataclass(frozen=True)
 class PageConfig:
     key: str
     title: str
-    icon: str
     render: Callable[[], None]
 
 
 PRIMARY_PAGES = [
-    PageConfig("home", "Home", "🏠", home.render),
-    PageConfig("lessons", "Lessons", "📚", lessons.render),
-    PageConfig("spreadsheet", "Spreadsheet Lab", "🧮", spreadsheet_lab.render),
-    PageConfig("chatbot", "AI Tutor", "🤖", chatbot.render),
+    PageConfig("home", "Home", home.render),
+    PageConfig("lessons", "Lessons", lessons.render),
+    PageConfig("spreadsheet", "Spreadsheet Lab", spreadsheet_lab.render),
+    PageConfig("chatbot", "AI Tutor", chatbot.render),
 ]
 
-HIDDEN_PAGES = [
-    PageConfig("practice", "Practice Lab", "🧪", practice_lab.render),
-]
+PROFILE_PAGE = PageConfig("profile", "Profile and Progress", profile_progress.render)
 
-PROFILE_PAGE = PageConfig("profile", "Profile & Progress", "👤", profile_progress.render)
-
-ALL_PAGES = {page.key: page for page in [*PRIMARY_PAGES, *HIDDEN_PAGES, PROFILE_PAGE]}
+ALL_PAGES = {page.key: page for page in [*PRIMARY_PAGES, PROFILE_PAGE]}
 
 
-st.set_page_config(page_title="ExcelWars", page_icon="📊", layout="wide")
+st.set_page_config(page_title="ExcelWars", layout="wide")
 init_app_state()
 
 if "active_page" not in st.session_state:
@@ -50,7 +45,7 @@ def render_sidebar(active_page: str) -> None:
     for page in PRIMARY_PAGES:
         button_type = "primary" if page.key == active_page else "secondary"
         if st.sidebar.button(
-            f"{page.icon} {page.title}",
+            page.title,
             key=f"nav_{page.key}",
             use_container_width=True,
             type=button_type,
@@ -62,7 +57,7 @@ def render_sidebar(active_page: str) -> None:
 
     profile_button_type = "primary" if PROFILE_PAGE.key == active_page else "secondary"
     if st.sidebar.button(
-        f"{PROFILE_PAGE.icon} {PROFILE_PAGE.title}",
+        PROFILE_PAGE.title,
         key="nav_profile_quick",
         use_container_width=True,
         type=profile_button_type,

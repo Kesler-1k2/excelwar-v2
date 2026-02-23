@@ -2,7 +2,6 @@ google-generativeai
 numpy
 openpyxl
 pandas
-Pillow
 python-dotenv
 streamlit>=1.30
 altair>=5.0

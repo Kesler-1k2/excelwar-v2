@@ -64,10 +64,9 @@ def markdown_to_df(markdown_text: str) -> pd.DataFrame | None:
 
 
 def render() -> None:
-    st.title("🤖 Excel Tutor")
+    st.title("Excel Tutor")
     st.write(
-        "AI Excel Assistant powered by Google Gemini. "
-        "Ask me anything about Excel formulas, functions, and more!"
+        "Ask Excel-related questions and get formula help, function explanations, and workflow guidance."
     )
 
     api_key = _init_gemini()
