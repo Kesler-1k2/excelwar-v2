@@ -296,7 +296,24 @@ LESSON_BLUEPRINTS = [
     },
 ]
 
-LESSONS = {f"Lesson {index}": lesson for index, lesson in enumerate(LESSON_BLUEPRINTS, start=1)}
+LESSON_PLAN_ORDER = [
+    "Totals and Counting",
+    "Extremes with MIN and MAX",
+    "Averages and Median",
+    "Precision and Number Transformations",
+    "IF Logic with Relational Operators",
+    "Combined Logic with AND, OR, and NOT",
+    "Counting Data States",
+    "Conditional Aggregation",
+    "Top-N and Ranking",
+    "Randomized Data Generation",
+    "Text Length and Extraction",
+    "Text Matching and Joining",
+]
+
+LESSON_BY_TITLE = {lesson["title"]: lesson for lesson in LESSON_BLUEPRINTS}
+ORDERED_LESSONS = [LESSON_BY_TITLE[title] for title in LESSON_PLAN_ORDER]
+LESSONS = {f"Lesson {index}": lesson for index, lesson in enumerate(ORDERED_LESSONS, start=1)}
 
 
 def _render_bullets(items: list[str]) -> None:
