@@ -7,6 +7,12 @@ import streamlit as st
 from dotenv import load_dotenv
 
 MODEL_NAME = "gemini-2.5-flash"
+EXCEL_TUTOR_INSTRUCTIONS = (
+    "You are an Excel-only tutor. You may answer only questions about Excel, spreadsheets, "
+    "formulas, functions, tables, charts, data cleaning, formatting, and workbook workflows. "
+    "If a user asks about anything outside Excel/spreadsheets, refuse briefly and redirect them "
+    "to ask an Excel-related question."
+)
 
 
 def _init_gemini() -> str | None:
@@ -107,7 +113,12 @@ def render() -> None:
     else:
         try:
             model = genai.GenerativeModel(MODEL_NAME)
-            response = model.generate_content(user_input)
+            prompt = (
+                f"{EXCEL_TUTOR_INSTRUCTIONS}\n\n"
+                f"User question: {user_input}\n\n"
+                "If the question is in-scope, provide a practical Excel-focused answer."
+            )
+            response = model.generate_content(prompt)
             bot_reply = response.text
             st.session_state.chat_cache[user_input] = bot_reply
         except Exception as error:

@@ -21,13 +21,16 @@ PRIMARY_PAGES = [
     PageConfig("home", "Home", "🏠", home.render),
     PageConfig("lessons", "Lessons", "📚", lessons.render),
     PageConfig("spreadsheet", "Spreadsheet Lab", "🧮", spreadsheet_lab.render),
-    PageConfig("practice", "Practice Lab", "🧪", practice_lab.render),
     PageConfig("chatbot", "AI Tutor", "🤖", chatbot.render),
+]
+
+HIDDEN_PAGES = [
+    PageConfig("practice", "Practice Lab", "🧪", practice_lab.render),
 ]
 
 PROFILE_PAGE = PageConfig("profile", "Profile & Progress", "👤", profile_progress.render)
 
-ALL_PAGES = {page.key: page for page in [*PRIMARY_PAGES, PROFILE_PAGE]}
+ALL_PAGES = {page.key: page for page in [*PRIMARY_PAGES, *HIDDEN_PAGES, PROFILE_PAGE]}
 
 
 st.set_page_config(page_title="ExcelWars", page_icon="📊", layout="wide")
