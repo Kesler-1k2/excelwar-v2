@@ -8,12 +8,4 @@ script = ""
 [[actions]]
 name = "Run"
 icon = "run"
-command = "streamlit run app_core.py"
-
-[[actions]]
-name = "Run"
-icon = "run"
-command = '''
-source .venv/bin/activate
-streamlit run Main.py
-'''
+command = "streamlit run Main.py"

@@ -759,8 +759,6 @@ def render_lab(
             st.caption(
                 f"Lesson coach mode: {lesson_context.get('name', '')} - {lesson_context.get('title', '')}"
             )
-        st.caption("Ask things like: what changed? what changed in A3?")
-        st.caption(f"Tracked sheet version: {st.session_state[keys['version']]}")
 
         with st.form(keys["chat_form"], clear_on_submit=False):
             st.text_input("Ask Gemini about this sheet", key=keys["chat_input"])
