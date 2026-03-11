@@ -3,3 +3,5 @@
 __pycache__/
 *.pyc
 .vscode
+app_data.db
+.streamlit/secrets.toml
