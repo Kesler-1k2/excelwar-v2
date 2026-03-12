@@ -1,8 +1,5 @@
-from io import BytesIO
-
 import pandas as pd
 import streamlit as st
-from PIL import Image, ImageDraw
 
 from app_core import (
     XP_PER_LEVEL,
@@ -11,71 +8,28 @@ from app_core import (
     get_profile_name,
     log_activity,
     navigate,
-    update_profile,
+    save_profile_data,
 )
 
 
-def _build_circular_avatar_bytes(image_bytes: bytes, size: int = 220) -> Image.Image:
-    image = Image.open(BytesIO(image_bytes)).convert("RGBA")
-    width, height = image.size
-    edge = min(width, height)
-    left = (width - edge) // 2
-    top = (height - edge) // 2
-    cropped = image.crop((left, top, left + edge, top + edge)).resize((size, size))
-
-    mask = Image.new("L", (size, size), 0)
-    draw = ImageDraw.Draw(mask)
-    draw.ellipse((0, 0, size - 1, size - 1), fill=255)
-
-    avatar = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    avatar.paste(cropped, (0, 0), mask)
-    return avatar
-
-
-def _render_profile_card() -> None:
+def _render_profile_editor() -> None:
     st.subheader("Student Profile")
 
-    avatar_bytes = st.session_state.get("avatar_bytes")
-    avatar_url = st.session_state.get("avatar_url")
+    profile_data = st.session_state.profile_data
+    current_name = st.session_state.get("student_name", "")
 
-    if avatar_bytes:
-        st.image(_build_circular_avatar_bytes(avatar_bytes), width=180)
-    elif avatar_url:
-        st.image(avatar_url, width=180)
-    else:
-        st.info("No profile picture yet.")
+    with st.form("profile_form"):
+        new_name = st.text_input("Name", value=current_name)
+        save_clicked = st.form_submit_button("Save Profile")
 
-    st.markdown(f"### {st.session_state.get('student_name', 'Guest')}")
-    email = st.session_state.get("email")
-    if email:
-        st.caption(email)
-
-
-def _render_profile_editor_dropdown() -> None:
-    with st.expander("Edit Profile", expanded=False):
-        current_name = st.session_state.get("student_name", "")
-        email = st.session_state.get("email", "")
-
-        with st.form("profile_form"):
-            new_name = st.text_input("Name", value=current_name)
-            st.text_input("Email", value=email, disabled=True)
-            uploaded_picture = st.file_uploader("Profile Picture", type=["png", "jpg", "jpeg"])
-            save_clicked = st.form_submit_button("Save Profile")
-
-        if save_clicked:
-            normalized_name = new_name.strip() or "Guest"
-            avatar_bytes = None
-            avatar_mime = None
-
-            if uploaded_picture is not None:
-                avatar_bytes = uploaded_picture.getvalue()
-                avatar_mime = uploaded_picture.type
-                st.session_state.avatar_url = None
-
-            update_profile(normalized_name, avatar_bytes, avatar_mime)
-            log_activity("Profile updated")
-            st.success("Profile saved.")
-            st.rerun()
+    if save_clicked:
+        normalized_name = new_name.strip() or "Guest"
+        profile_data["name"] = normalized_name
+        st.session_state.student_name = normalized_name
+        st.session_state.profile_data = profile_data
+        save_profile_data(profile_data)
+        log_activity("Profile updated")
+        st.success("Profile saved.")
 
 
 def _render_progress_summary() -> None:
@@ -130,8 +84,7 @@ def render() -> None:
     left_col, right_col = st.columns([1, 1], gap="large")
 
     with left_col:
-        _render_profile_card()
-        _render_profile_editor_dropdown()
+        _render_profile_editor()
 
     with right_col:
         _render_progress_summary()
